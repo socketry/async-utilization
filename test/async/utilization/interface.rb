@@ -68,12 +68,17 @@ describe Async::Utilization::Interface do
 	
 	it "notifies observer when values change" do
 		values_set = []
+		
+		# Create a proper observer with schema
+		schema = Async::Utilization::Schema.build(test_field: :u64)
 		observer = Object.new
 		
 		# Define methods on observer
 		observer.define_singleton_method(:set) do |field, value|
 			values_set << [field, value]
 		end
+		observer.define_singleton_method(:schema) { schema }
+		observer.define_singleton_method(:buffer) { nil }  # No buffer, so write_direct will return false
 		
 		interface.set(:test_field, 5)
 		interface.observer = observer
@@ -82,31 +87,34 @@ describe Async::Utilization::Interface do
 		expect(values_set).to be(:include?, [:test_field, 5])
 		
 		# Clear and test new changes
+		# Note: Since observer has no buffer, write_direct will return false
+		# and no notification will occur (as per new design)
 		values_set.clear
 		interface.increment(:test_field)
 		
-		expect(values_set).to be(:include?, [:test_field, 6])
+		# With no buffer, write_direct fails silently, so no notification
+		expect(values_set).to be == []
 	end
 	
-	it "uses module-level convenience methods" do
-		Async::Utilization.increment(:module_test)
-		Async::Utilization.increment(:module_test)
+	it "uses metric method for fast path" do
+		Async::Utilization.metric(:module_test).increment
+		Async::Utilization.metric(:module_test).increment
 		
 		interface = Async::Utilization::Interface.instance
 		expect(interface.values).to have_keys(module_test: be == 2)
 	end
 	
-	it "can use module-level decrement" do
-		Async::Utilization.increment(:module_decrement_test)
-		Async::Utilization.increment(:module_decrement_test)
-		Async::Utilization.decrement(:module_decrement_test)
+	it "can use metric for decrement" do
+		Async::Utilization.metric(:module_decrement_test).increment
+		Async::Utilization.metric(:module_decrement_test).increment
+		Async::Utilization.metric(:module_decrement_test).decrement
 		
 		interface = Async::Utilization::Interface.instance
 		expect(interface.values).to have_keys(module_decrement_test: be == 1)
 	end
 	
-	it "can use module-level set" do
-		Async::Utilization.set(:module_set_test, 99)
+	it "can use metric for set" do
+		Async::Utilization.metric(:module_set_test).set(99)
 		
 		interface = Async::Utilization::Interface.instance
 		expect(interface.values).to have_keys(module_set_test: be == 99)

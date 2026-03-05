@@ -41,7 +41,7 @@ module Async
 			# Initialize a new interface.
 			def initialize
 				@observer = nil
-				@values = Hash.new(0)
+				@metrics = {}
 				
 				@guard = Mutex.new
 			end
@@ -49,86 +49,86 @@ module Async
 			# @attribute [Object | Nil] The registered observer.
 			attr :observer
 			
-			# @attribute [Hash] The current values for all fields.
-			attr :values
+			# @attribute [Mutex] The mutex for thread safety.
+			attr :guard
+			
+			# Get the current values for all metrics.
+			#
+			# @returns [Hash] Hash mapping field names to their current values.
+			def values
+				@metrics.transform_values do |metric|
+					metric.guard.synchronize { metric.value }
+				end
+			end
 			
 			# Set the observer for the interface.
 			#
-			# When an observer is set, it is notified of all current values
+			# When an observer is set, it is notified of all current metric values
 			# so it can sync its state. The observer must implement `set(field, value)`.
+			# All cached metrics are invalidated when the observer changes.
 			#
 			# @parameter observer [#set] The observer to set.
 			def observer=(observer)
 				@guard.synchronize do
-					@observer = observer
-					
-					@values.each do |field, value|
-						observer.set(field, value)
+					# Invalidate all cached metrics
+					@metrics.each_value do |metric|
+						metric.invalidate
 					end
+					
+					@observer = observer
+				end
+				
+				# Notify observer of all current metric values (outside guard to avoid deadlock)
+				@metrics.each do |name, metric|
+					value = metric.guard.synchronize { metric.value }
+					observer.set(name, value)
 				end
 			end
 			
 			# Set a field value.
 			#
-			# Updates the interface's value and notifies the registered observer.
+			# Delegates to the metric instance for the given field.
 			#
 			# @parameter field [Symbol] The field name to set.
 			# @parameter value [Numeric] The value to set.
 			def set(field, value)
-				field = field.to_sym
-				
-				@guard.synchronize do
-					@values[field] = value
-					@observer&.set(field, value)
-				end
+				metric(field).set(value)
 			end
 			
 			# Increment a field value, optionally with a block that auto-decrements.
 			#
-			# Updates the interface's value and notifies the registered observer.
+			# Delegates to the metric instance for the given field.
 			#
 			# @parameter field [Symbol] The field name to increment.
 			# @yield Optional block - if provided, decrements the field after the block completes.
 			# @returns [Integer] The new value of the field.
-			def increment(field)
-				field = field.to_sym
-				
-				new_value = nil
-				@guard.synchronize do
-					new_value = @values[field] + 1
-					@values[field] = new_value
-					@observer&.set(field, new_value)
-				end
-				
-				if block_given?
-					begin
-						yield
-					ensure
-						# Decrement after block completes
-						decrement(field)
-					end
-				end
-				
-				new_value
+			def increment(field, &block)
+				metric(field).increment(&block)
 			end
 			
 			# Decrement a field value.
 			#
-			# Updates the interface's value and notifies the registered observer.
+			# Delegates to the metric instance for the given field.
 			#
 			# @parameter field [Symbol] The field name to decrement.
 			# @returns [Integer] The new value of the field.
 			def decrement(field)
+				metric(field).decrement
+			end
+			
+			# Get a cached metric reference for a field.
+			#
+			# Returns a {Metric} instance that caches all details needed for fast writes.
+			# Metrics are cached per field and invalidated when the observer changes.
+			#
+			# @parameter field [Symbol] The field name to get a metric for.
+			# @returns [Metric] A metric instance for the given field.
+			def metric(field)
 				field = field.to_sym
 				
-				new_value = nil
 				@guard.synchronize do
-					new_value = @values[field] - 1
-					@values[field] = new_value
-					@observer&.set(field, new_value)
+					@metrics[field] ||= Metric.new(field, self)
 				end
-				
-				new_value
 			end
 		end
 	end

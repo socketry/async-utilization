@@ -69,6 +69,9 @@ module Async
 			# @attribute [Schema] The schema used for serialization.
 			attr :schema
 			
+			# @attribute [IO::Buffer] The mapped buffer for shared memory.
+			attr :buffer
+			
 			# Set a field value.
 			#
 			# Writes the value to shared memory at the offset defined by the schema.
