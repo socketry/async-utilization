@@ -14,10 +14,10 @@ module Async
 			# Initialize a new metric.
 			#
 			# @parameter name [Symbol] The field name for this metric.
-			# @parameter interface [Interface] The interface instance to use.
-			def initialize(name, interface)
+			# @parameter registry [Registry] The registry instance to use.
+			def initialize(name, registry)
 				@name = name.to_sym
-				@interface = interface
+				@registry = registry
 				@value = 0
 				@cache_valid = false
 				@cached_field_info = nil
@@ -103,16 +103,16 @@ module Async
 			# @returns [bool] True if cache is valid, false otherwise.
 			def ensure_cache_valid!
 				unless @cache_valid
-					if observer = @interface.observer
+					if observer = @registry.observer
 						if field = observer.schema[@name]
 							if buffer = observer.buffer
 								@cached_field_info = field
 								@cached_buffer = buffer
-								@cache_valid = true
 							end
 						end
 					end
 
+					# Once we've validated the cache, even if there was no observer or buffer, we mark it as valid, so that we don't try to revalidate it again:
 					@cache_valid = true
 				end
 			end

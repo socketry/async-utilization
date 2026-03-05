@@ -34,11 +34,11 @@ describe Async::Utilization::Metric do
 			file.truncate(file_size)
 		end
 		
-		# Reset the interface to ensure clean state between tests
-		interface = Async::Utilization::Interface.instance
-		interface.instance_variable_set(:@values, Hash.new(0))
-		interface.instance_variable_set(:@metrics, {})
-		interface.instance_variable_set(:@observer, nil)
+		# Reset the registry to ensure clean state between tests
+		registry = Async::Utilization::Registry.instance
+		registry.instance_variable_set(:@values, Hash.new(0))
+		registry.instance_variable_set(:@metrics, {})
+		registry.instance_variable_set(:@observer, nil)
 	end
 	
 	it "can create a metric from a field name" do

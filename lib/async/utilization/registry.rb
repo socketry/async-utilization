@@ -7,23 +7,23 @@ require "thread/local"
 
 module Async
 	module Utilization
-		# Interface for emitting utilization metrics.
+		# Registry for emitting utilization metrics.
 		#
-		# The interface tracks values directly and notifies a registered observer
+		# The registry tracks values directly and notifies a registered observer
 		# when values change. The observer (like Observer) can write to its backend.
 		#
-		# Each thread gets its own instance of the interface, providing
+		# Each thread gets its own instance of the registry, providing
 		# thread-local behavior through the thread-local gem.
 		#
 		# When an observer is added, it is immediately notified of all current values
 		# so it can sync its state. When values change, the observer is notified.
 		#
 		# @example
-		#   interface = Async::Utilization::Interface.new
+		#   registry = Async::Utilization::Registry.new
 		#   
-		#   # Emit metrics - values tracked in interface
-		#   interface.increment(:total_requests)
-		#   interface.increment(:active_requests) do
+		#   # Emit metrics - values tracked in registry
+		#   registry.increment(:total_requests)
+		#   registry.increment(:active_requests) do
 		#     # Handle request - auto-decrements when block completes
 		#   end
 		#   
@@ -34,11 +34,11 @@ module Async
 		#     active_requests: :u32
 		#   )
 		#   observer = Async::Utilization::Observer.open(schema, "/path/to/shm", 4096, 0)
-		#   interface.observer = observer
-		class Interface
+		#   registry.observer = observer
+		class Registry
 			extend Thread::Local
 			
-			# Initialize a new interface.
+			# Initialize a new registry.
 			def initialize
 				@observer = nil
 				@metrics = {}
@@ -57,11 +57,11 @@ module Async
 			# @returns [Hash] Hash mapping field names to their current values.
 			def values
 				@metrics.transform_values do |metric|
-					metric.guard.synchronize { metric.value }
+					metric.guard.synchronize{metric.value}
 				end
 			end
 			
-			# Set the observer for the interface.
+			# Set the observer for the registry.
 			#
 			# When an observer is set, it is notified of all current metric values
 			# so it can sync its state. The observer must implement `set(field, value)`.
@@ -80,7 +80,7 @@ module Async
 				
 				# Notify observer of all current metric values (outside guard to avoid deadlock)
 				@metrics.each do |name, metric|
-					value = metric.guard.synchronize { metric.value }
+					value = metric.guard.synchronize{metric.value}
 					observer.set(name, value)
 				end
 			end

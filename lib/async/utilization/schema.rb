@@ -9,17 +9,17 @@ module Async
 		#
 		# The schema defines the layout and types for serializing utilization
 		# metrics to shared memory. It's only needed when using Observer for
-		# shared memory storage - the Interface itself doesn't require a schema.
+		# shared memory storage - the Registry itself doesn't require a schema.
 		#
-		# @example
-		#   schema = Async::Utilization::Schema.build(
-		#     total_requests: :u64,
-		#     active_requests: :u32
-		#   )
-		#   
-		#   interface = Async::Utilization::Interface.new
-		#   observer = Async::Utilization::Observer.open(schema, "/path/to/shm", 4096, 0)
-		#   interface.observer = observer
+		# @example Assign a schema to an observer.
+		# 	schema = Async::Utilization::Schema.build(
+		# 		total_requests: :u64,
+		# 		active_requests: :u32,
+		# 	)
+		# 	
+		# 	registry = Async::Utilization::Registry.new
+		# 	observer = Async::Utilization::Observer.open(schema, "/path/to/shm", 4096, 0)
+		# 	registry.observer = observer
 		class Schema
 			# Represents a field in the schema with its name, type, and offset.
 			Field = Data.define(:name, :type, :offset)

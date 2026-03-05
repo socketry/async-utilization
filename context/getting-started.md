@@ -16,7 +16,7 @@ $ bundle add async-utilization
 
 The key components are:
 
-- {ruby Async::Utilization::Interface}: Thread-local singleton for emitting metrics
+- {ruby Async::Utilization::Registry}: Thread-local singleton for emitting metrics
 - {ruby Async::Utilization::Schema}: Defines the binary layout for serialization
 - {ruby Async::Utilization::Observer}: Writes metrics to shared memory using the schema
 
