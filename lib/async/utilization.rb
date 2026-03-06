@@ -43,12 +43,12 @@ module Async
 		#
 		# @parameter field [Symbol] The field name to get a metric for.
 		# @returns [Metric] A metric instance for the given field.
-		# @example
-		#   current_requests = Async::Utilization.metric(:current_requests)
-		#   current_requests.increment
-		#   current_requests.increment do
-		#     # Handle request - auto-decrements when block completes
-		#   end
+		# @example Get a metric and increment it:
+		# 	current_requests = Async::Utilization.metric(:current_requests)
+		# 	current_requests.increment
+		# 	current_requests.increment do
+		# 		# Handle request - auto-decrements when block completes
+		# 	end
 		def self.metric(field)
 			Registry.instance.metric(field)
 		end

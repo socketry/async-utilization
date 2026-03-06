@@ -18,23 +18,23 @@ module Async
 		# When an observer is added, it is immediately notified of all current values
 		# so it can sync its state. When values change, the observer is notified.
 		#
-		# @example
-		#   registry = Async::Utilization::Registry.new
-		#   
-		#   # Emit metrics - values tracked in registry
-		#   registry.increment(:total_requests)
-		#   registry.increment(:active_requests) do
-		#     # Handle request - auto-decrements when block completes
-		#   end
-		#   
-		#   # Add shared memory observer when supervisor connects
-		#   # Observer will be notified of all current values automatically
-		#   schema = Async::Utilization::Schema.build(
-		#     total_requests: :u64,
-		#     active_requests: :u32
-		#   )
-		#   observer = Async::Utilization::Observer.open(schema, "/path/to/shm", 4096, 0)
-		#   registry.observer = observer
+		# @example Create a registry and emit metrics:
+		# 	registry = Async::Utilization::Registry.new
+		# 	
+		# 	# Emit metrics - values tracked in registry
+		# 	registry.increment(:total_requests)
+		# 	registry.increment(:active_requests) do
+		# 		# Handle request - auto-decrements when block completes
+		# 	end
+		# 	
+		# 	# Add shared memory observer when supervisor connects
+		# 	# Observer will be notified of all current values automatically
+		# 	schema = Async::Utilization::Schema.build(
+		# 		total_requests: :u64,
+		# 		active_requests: :u32
+		# 	)
+		# 	observer = Async::Utilization::Observer.open(schema, "/path/to/shm", 4096, 0)
+		# 	registry.observer = observer
 		class Registry
 			extend Thread::Local
 			

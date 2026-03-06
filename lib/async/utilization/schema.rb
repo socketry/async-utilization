@@ -11,7 +11,7 @@ module Async
 		# metrics to shared memory. It's only needed when using Observer for
 		# shared memory storage - the Registry itself doesn't require a schema.
 		#
-		# @example Assign a schema to an observer.
+		# @example Assign a schema to an observer:
 		# 	schema = Async::Utilization::Schema.build(
 		# 		total_requests: :u64,
 		# 		active_requests: :u32,
