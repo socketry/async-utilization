@@ -16,22 +16,27 @@ $ bundle add async-utilization
 
 The key components are:
 
-- {ruby Async::Utilization::Registry}: Thread-local singleton for emitting metrics
-- {ruby Async::Utilization::Schema}: Defines the binary layout for serialization
-- {ruby Async::Utilization::Observer}: Writes metrics to shared memory using the schema
+- {ruby Async::Utilization::Registry}: Thread-local singleton for emitting metrics.
+- {ruby Async::Utilization::Schema}: Defines the binary layout for serialization.
+- {ruby Async::Utilization::Observer}: Writes metrics to shared memory using the schema.
+- {ruby Async::Utilization::Metric}: Caches metric value and fast path for direct buffer updates.
 
 ## Basic Usage
 
-The simplest way to use `async-utilization` is to emit metrics directly:
+The recommended way to use `async-utilization` is to get a cached metric reference and use it:
 
 ```ruby
 require "async/utilization"
 
-# Increment a metric
-Async::Utilization.increment(:total_requests)
+# Get metrics:
+total_requests = Async::Utilization.metric(:total_requests)
+active_requests = Async::Utilization.metric(:active_requests)
 
-# Increment with auto-decrement
-Async::Utilization.increment(:active_requests) do
+# Increment a metric:
+total_requests.increment
+
+# Increment with auto-decrement:
+active_requests.increment do
 	# Handle request - automatically decrements when block completes
 end
 ```
@@ -63,8 +68,9 @@ observer = Async::Utilization::Observer.open(
 # Set observer - metrics will now be written to shared memory
 Async::Utilization.observer = observer
 
-# Now all metrics are written to shared memory
-Async::Utilization.increment(:total_requests)
+# All metrics are written directly to shared memory:
+total_requests = Async::Utilization.metric(:total_requests)
+total_requests.increment
 ```
 
 The observer automatically handles page alignment requirements for memory mapping, so you can use any segment size and offset. The supervisor process can then read these metrics from shared memory to aggregate utilization across all workers.

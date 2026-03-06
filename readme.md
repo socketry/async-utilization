@@ -14,7 +14,7 @@ Please see the [project documentation](https://socketry.github.io/async-utilizat
 
 Please see the [project releases](https://socketry.github.io/async-utilization/releases/index) for all releases.
 
-### Unreleased
+### v0.1.0
 
   - Initial implementation.
 
