@@ -29,28 +29,24 @@ describe Async::Utilization::Metric do
 		Async::Utilization::Observer.open(schema, shm_path, segment_size, offset)
 	end
 	
+	let(:registry) {Async::Utilization::Registry.new}
+	
 	before do
 		File.open(shm_path, "w+b") do |file|
 			file.truncate(file_size)
 		end
-		
-		# Reset the registry to ensure clean state between tests
-		registry = Async::Utilization::Registry.instance
-		registry.instance_variable_set(:@values, Hash.new(0))
-		registry.instance_variable_set(:@metrics, {})
-		registry.instance_variable_set(:@observer, nil)
 	end
 	
 	it "can create a metric from a field name" do
-		metric = Async::Utilization.metric(:total_requests)
+		metric = registry.metric(:total_requests)
 		
 		expect(metric).to be_a(Async::Utilization::Metric)
 		expect(metric.name).to be == :total_requests
 	end
 	
 	it "can increment a metric" do
-		Async::Utilization.observer = observer
-		metric = Async::Utilization.metric(:total_requests)
+		registry.observer = observer
+		metric = registry.metric(:total_requests)
 		
 		value = metric.increment
 		expect(value).to be == 1
@@ -62,8 +58,8 @@ describe Async::Utilization::Metric do
 	end
 	
 	it "can decrement a metric" do
-		Async::Utilization.observer = observer
-		metric = Async::Utilization.metric(:total_requests)
+		registry.observer = observer
+		metric = registry.metric(:total_requests)
 		
 		metric.increment
 		metric.increment
@@ -74,8 +70,8 @@ describe Async::Utilization::Metric do
 	end
 	
 	it "can set a metric value" do
-		Async::Utilization.observer = observer
-		metric = Async::Utilization.metric(:total_requests)
+		registry.observer = observer
+		metric = registry.metric(:total_requests)
 		
 		metric.set(42)
 		expect(metric.value).to be == 42
@@ -85,8 +81,8 @@ describe Async::Utilization::Metric do
 	end
 	
 	it "can increment with auto-decrement block" do
-		Async::Utilization.observer = observer
-		metric = Async::Utilization.metric(:active_requests)
+		registry.observer = observer
+		metric = registry.metric(:active_requests)
 		
 		metric.increment do
 			expect(metric.value).to be == 1
@@ -96,8 +92,8 @@ describe Async::Utilization::Metric do
 	end
 	
 	it "decrements even if block raises an error" do
-		Async::Utilization.observer = observer
-		metric = Async::Utilization.metric(:active_requests)
+		registry.observer = observer
+		metric = registry.metric(:active_requests)
 		
 		begin
 			metric.increment do
@@ -111,8 +107,8 @@ describe Async::Utilization::Metric do
 	end
 	
 	it "writes directly to shared memory when observer is set" do
-		Async::Utilization.observer = observer
-		metric = Async::Utilization.metric(:total_requests)
+		registry.observer = observer
+		metric = registry.metric(:total_requests)
 		
 		metric.set(42)
 		
@@ -122,8 +118,8 @@ describe Async::Utilization::Metric do
 	end
 	
 	it "invalidates cache when observer changes" do
-		Async::Utilization.observer = observer
-		metric = Async::Utilization.metric(:total_requests)
+		registry.observer = observer
+		metric = registry.metric(:total_requests)
 		
 		# Set a value - cache should be built
 		metric.set(10)
@@ -139,7 +135,7 @@ describe Async::Utilization::Metric do
 		new_observer = Async::Utilization::Observer.open(new_schema, new_shm_path, segment_size, 0)
 		
 		# Change observer - cache should be invalidated
-		Async::Utilization.observer = new_observer
+		registry.observer = new_observer
 		
 		# Set a new value - cache should be rebuilt
 		metric.set(20)
@@ -151,7 +147,7 @@ describe Async::Utilization::Metric do
 	end
 	
 	it "works without an observer" do
-		metric = Async::Utilization.metric(:total_requests)
+		metric = registry.metric(:total_requests)
 		
 		# Should work fine without observer (uses fallback path)
 		metric.increment
@@ -161,21 +157,21 @@ describe Async::Utilization::Metric do
 		expect(metric.value).to be == 5
 		
 		# Set observer and verify it works with fast path
-		Async::Utilization.observer = observer
+		registry.observer = observer
 		metric.set(10)
 		expect(metric.value).to be == 10
 	end
 	
 	it "returns the same metric instance for the same field" do
-		metric1 = Async::Utilization.metric(:total_requests)
-		metric2 = Async::Utilization.metric(:total_requests)
+		metric1 = registry.metric(:total_requests)
+		metric2 = registry.metric(:total_requests)
 		
 		expect(metric1).to be == metric2
 	end
 	
 	it "falls back to observer.set when write_direct fails" do
-		Async::Utilization.observer = observer
-		metric = Async::Utilization.metric(:total_requests)
+		registry.observer = observer
+		metric = registry.metric(:total_requests)
 		
 		# Force cache to be invalid by invalidating it
 		metric.invalidate
@@ -190,8 +186,8 @@ describe Async::Utilization::Metric do
 	end
 	
 	it "handles write errors gracefully" do
-		Async::Utilization.observer = observer
-		metric = Async::Utilization.metric(:total_requests)
+		registry.observer = observer
+		metric = registry.metric(:total_requests)
 		
 		# Set a value first to build the cache
 		metric.set(10)

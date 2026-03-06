@@ -3,8 +3,6 @@
 # Released under the MIT License.
 # Copyright, 2026, by Samuel Williams.
 
-require "thread/local"
-
 module Async
 	module Utilization
 		# Registry for emitting utilization metrics.
@@ -12,8 +10,9 @@ module Async
 		# The registry tracks values directly and notifies a registered observer
 		# when values change. The observer (like Observer) can write to its backend.
 		#
-		# Each thread gets its own instance of the registry, providing
-		# thread-local behavior through the thread-local gem.
+		# Registries should be explicitly created and passed to components that need them.
+		# In service contexts, registries are typically created via the evaluator and
+		# shared across components within the same service instance.
 		#
 		# When an observer is added, it is immediately notified of all current values
 		# so it can sync its state. When values change, the observer is notified.
@@ -36,7 +35,6 @@ module Async
 		# 	observer = Async::Utilization::Observer.open(schema, "/path/to/shm", 4096, 0)
 		# 	registry.observer = observer
 		class Registry
-			extend Thread::Local
 			
 			# Initialize a new registry.
 			def initialize

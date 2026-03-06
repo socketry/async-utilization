@@ -15,42 +15,9 @@ module Async
 	#
 	# This module provides a convenient interface for tracking utilization metrics
 	# that can be synchronized to shared memory for inter-process communication.
-	# Each thread gets its own instance of the underlying {Registry}, providing
-	# thread-local behavior.
+	# Registries should be explicitly created and passed to components that need them.
 	#
 	# See the {file:guides/getting-started/readme.md Getting Started} guide for usage examples.
 	module Utilization
-		# Set the observer for utilization metrics.
-		#
-		# When an observer is set, it is notified of all current metric values
-		# so it can sync its state. The observer must implement `set(field, value)`.
-		#
-		# Delegates to the thread-local {Registry} instance.
-		#
-		# @parameter observer [#set] The observer to set.
-		def self.observer=(observer)
-			Registry.instance.observer = observer
-		end
-		
-		# Get a cached metric reference for a field.
-		#
-		# Returns a {Metric} instance that caches all details needed for fast writes
-		# to shared memory, avoiding hash lookups on the fast path.
-		#
-		# This is the recommended way to access metrics for optimal performance.
-		#
-		# Delegates to the thread-local {Registry} instance.
-		#
-		# @parameter field [Symbol] The field name to get a metric for.
-		# @returns [Metric] A metric instance for the given field.
-		# @example Get a metric and increment it:
-		# 	current_requests = Async::Utilization.metric(:current_requests)
-		# 	current_requests.increment
-		# 	current_requests.increment do
-		# 		# Handle request - auto-decrements when block completes
-		# 	end
-		def self.metric(field)
-			Registry.instance.metric(field)
-		end
 	end
 end
