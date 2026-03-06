@@ -92,7 +92,7 @@ module Async
 					write_direct(@value)
 				end
 			end
-
+			
 			protected
 			
 			# Check if the cache is valid and rebuild if necessary.
@@ -111,7 +111,7 @@ module Async
 							end
 						end
 					end
-
+					
 					# Once we've validated the cache, even if there was no observer or buffer, we mark it as valid, so that we don't try to revalidate it again:
 					@cache_valid = true
 				end
@@ -126,11 +126,11 @@ module Async
 			# @returns [Boolean] Whether the write succeeded.
 			def write_direct(value)
 				self.ensure_cache_valid!
-
+				
 				if @cached_buffer
 					@cached_buffer.set_value(@cached_field_info.type, @cached_field_info.offset, value)
 				end
-
+				
 				return true
 			rescue => error
 				# If write fails, log warning but don't invalidate cache
