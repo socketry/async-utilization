@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.3.1
 
   - Remove unused `thread-local` dependency.
 
