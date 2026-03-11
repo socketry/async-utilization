@@ -43,28 +43,36 @@ module Async
 				@cached_buffer = nil
 			end
 			
-			# Increment the metric value, optionally with a block that auto-decrements.
+			# Increment the metric value.
 			#
 			# Uses the fast path (direct buffer write) when cache is valid and observer is available.
 			#
-			# @yield Optional block - if provided, decrements the field after the block completes.
 			# @returns [Integer] The new value of the field.
-			def increment(&block)
+			def increment
 				@guard.synchronize do
 					@value += 1
 					write_direct(@value)
 				end
 				
-				if block_given?
-					begin
-						yield
-					ensure
-						# Decrement after block completes
-						decrement
-					end
-				end
-				
 				@value
+			end
+			
+			# Track an operation: increment before the block, decrement after it completes.
+			#
+			# Returns the block's return value. Use for active/count metrics that should
+			# reflect the number of operations currently in progress.
+			#
+			# @yield The operation to track.
+			# @returns [Object] The block's return value.
+			def track(&block)
+				raise ArgumentError, "block required" unless block_given?
+				
+				increment
+				begin
+					yield
+				ensure
+					decrement
+				end
 			end
 			
 			# Decrement the metric value.

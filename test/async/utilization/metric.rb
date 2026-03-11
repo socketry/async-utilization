@@ -80,23 +80,62 @@ describe Async::Utilization::Metric do
 		expect(metric.value).to be == 100
 	end
 	
-	it "can increment with auto-decrement block" do
+	it "can track an operation with auto-decrement" do
 		registry.observer = observer
 		metric = registry.metric(:active_requests)
 		
-		metric.increment do
+		metric.track do
 			expect(metric.value).to be == 1
 		end
 		
 		expect(metric.value).to be == 0
 	end
 	
-	it "decrements even if block raises an error" do
+	it "returns the metric value when increment is called" do
+		registry.observer = observer
+		metric = registry.metric(:total_requests)
+		
+		result = metric.increment
+		expect(result).to be == 1
+		expect(result).to be == metric.value
+		
+		result = metric.increment
+		expect(result).to be == 2
+		expect(result).to be == metric.value
+	end
+	
+	it "returns the block's return value when track is called" do
+		registry.observer = observer
+		metric = registry.metric(:active_requests)
+		
+		# Block returns a string
+		result = metric.track do
+			"connection_object"
+		end
+		expect(result).to be == "connection_object"
+		expect(metric.value).to be == 0 # Should be decremented after block
+		
+		# Block returns an integer
+		result = metric.track do
+			42
+		end
+		expect(result).to be == 42
+		expect(metric.value).to be == 0 # Should be decremented after block
+		
+		# Block returns nil
+		result = metric.track do
+			nil
+		end
+		expect(result).to be == nil
+		expect(metric.value).to be == 0 # Should be decremented after block
+	end
+	
+	it "decrements even if track block raises an error" do
 		registry.observer = observer
 		metric = registry.metric(:active_requests)
 		
 		begin
-			metric.increment do
+			metric.track do
 				raise "Test error"
 			end
 		rescue => error
@@ -104,6 +143,14 @@ describe Async::Utilization::Metric do
 		end
 		
 		expect(metric.value).to be == 0
+	end
+	
+	it "raises ArgumentError when track is called without a block" do
+		metric = registry.metric(:active_requests)
+		
+		expect do
+			metric.track
+		end.to raise_exception(ArgumentError, message: be == "block required")
 	end
 	
 	it "writes directly to shared memory when observer is set" do

@@ -37,17 +37,17 @@ describe Async::Utilization::Registry do
 		expect(registry.values[:test_field]).to be == 42
 	end
 	
-	it "can auto-decrement with a block" do
-		registry.increment(:test_field) do
+	it "can track an operation with auto-decrement" do
+		registry.track(:test_field) do
 			expect(registry.values[:test_field]).to be == 1
 		end
 		
 		expect(registry.values[:test_field]).to be == 0
 	end
 	
-	it "decrements even if block raises an error" do
+	it "decrements even if track block raises an error" do
 		begin
-			registry.increment(:test_field) do
+			registry.track(:test_field) do
 				raise "Error!"
 			end
 		rescue

@@ -22,7 +22,7 @@ module Async
 		# 	
 		# 	# Emit metrics - values tracked in registry
 		# 	registry.increment(:total_requests)
-		# 	registry.increment(:active_requests) do
+		# 	registry.track(:active_requests) do
 		# 		# Handle request - auto-decrements when block completes
 		# 	end
 		# 	
@@ -93,15 +93,25 @@ module Async
 				metric(field).set(value)
 			end
 			
-			# Increment a field value, optionally with a block that auto-decrements.
+			# Increment a field value.
 			#
 			# Delegates to the metric instance for the given field.
 			#
 			# @parameter field [Symbol] The field name to increment.
-			# @yield Optional block - if provided, decrements the field after the block completes.
 			# @returns [Integer] The new value of the field.
-			def increment(field, &block)
-				metric(field).increment(&block)
+			def increment(field)
+				metric(field).increment
+			end
+			
+			# Track an operation: increment before the block, decrement after it completes.
+			#
+			# Delegates to the metric instance for the given field.
+			#
+			# @parameter field [Symbol] The field name to track.
+			# @yield The operation to track.
+			# @returns [Object] The block's return value.
+			def track(field, &block)
+				metric(field).track(&block)
 			end
 			
 			# Decrement a field value.

@@ -35,8 +35,8 @@ active_requests = Async::Utilization.metric(:active_requests)
 # Increment a metric:
 total_requests.increment
 
-# Increment with auto-decrement:
-active_requests.increment do
+# Track an operation (increment before block, decrement after):
+active_requests.track do
 	# Handle request - automatically decrements when block completes
 end
 ```
