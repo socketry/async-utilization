@@ -1,5 +1,9 @@
 # Releases
 
+## Unreleased
+
+  - Better observer state handling.
+
 ## v0.3.1
 
   - Remove unused `thread-local` dependency.

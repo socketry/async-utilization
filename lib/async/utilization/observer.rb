@@ -3,7 +3,6 @@
 # Released under the MIT License.
 # Copyright, 2026, by Samuel Williams.
 
-require "console"
 require_relative "schema"
 
 module Async
@@ -71,21 +70,6 @@ module Async
 			
 			# @attribute [IO::Buffer] The mapped buffer for shared memory.
 			attr :buffer
-			
-			# Set a field value.
-			#
-			# Writes the value to shared memory at the offset defined by the schema.
-			# Only fields defined in the schema will be written.
-			#
-			# @parameter field [Symbol] The field name to set.
-			# @parameter value [Numeric] The value to set.
-			def set(field, value)
-				if field = @schema[field]
-					@buffer.set_value(field.type, field.offset, value)
-				end
-			rescue => error
-				Console.warn(self, "Failed to set field in shared memory!", field: field, exception: error)
-			end
 		end
 	end
 end
