@@ -14,6 +14,10 @@ Please see the [project documentation](https://socketry.github.io/async-utilizat
 
 Please see the [project releases](https://socketry.github.io/async-utilization/releases/index) for all releases.
 
+### v0.3.2
+
+  - Better observer state handling.
+
 ### v0.3.1
 
   - Remove unused `thread-local` dependency.

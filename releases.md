@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.3.2
 
   - Better observer state handling.
 
