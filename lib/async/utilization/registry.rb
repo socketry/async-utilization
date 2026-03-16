@@ -77,7 +77,7 @@ module Async
 						metric.observer = observer
 					end
 					
-					# Console.info(self, "Observer assigned", observer: observer, metric_count: @metrics.size)
+					Console.info(self, "Observer assigned", observer: observer, metric_count: @metrics.size)
 				end
 				
 			end

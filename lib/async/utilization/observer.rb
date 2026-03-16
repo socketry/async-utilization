@@ -82,7 +82,7 @@ module Async
 			def set(field, value)
 				if entry = @schema[field]
 					@buffer.set_value(entry.type, entry.offset, value)
-					# Console.info(self, "Wrote utilization metric", field: field, value: value, offset: entry.offset)
+					Console.info(self, "Wrote utilization metric", field: field, value: value, offset: entry.offset)
 				end
 			rescue => error
 				Console.warn(self, "Failed to set field in shared memory!", field: field, exception: error)

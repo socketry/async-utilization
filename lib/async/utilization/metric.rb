@@ -62,7 +62,7 @@ module Async
 						outcome = :unsupported_observer
 					end
 					
-					# Console.info(self, "Cache validation", metric: @name, outcome: outcome)
+					Console.info(self, "Cache validation", metric: @name, outcome: outcome)
 					
 					write_direct(@value)
 				end
