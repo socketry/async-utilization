@@ -1,0 +1,3 @@
+async-service-supevisor:
+  url: https://github.com/socketry/async-service-supervisor
+  command: bundle exec sus
