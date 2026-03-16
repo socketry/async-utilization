@@ -154,9 +154,9 @@ describe Async::Utilization::Metric do
 	end
 	
 	it "writes directly to shared memory when observer is set" do
-		registry.observer = observer
 		metric = registry.metric(:total_requests)
-		
+		registry.observer = observer
+
 		metric.set(42)
 		
 		# Read back from file to verify
@@ -216,33 +216,13 @@ describe Async::Utilization::Metric do
 		expect(metric1).to be == metric2
 	end
 	
-	it "falls back to observer.set when write_direct fails" do
-		registry.observer = observer
-		metric = registry.metric(:total_requests)
-		
-		# Force cache to be invalid by invalidating it
-		metric.invalidate
-		
-		# Set a value - should fall back to observer.set
-		metric.set(42)
-		expect(metric.value).to be == 42
-		
-		# Verify it was written to shared memory
-		buffer = IO::Buffer.map(File.open(shm_path, "r+b"), file_size, 0)
-		expect(buffer.get_value(:u64, 0)).to be == 42
-	end
-	
 	it "handles write errors gracefully" do
 		registry.observer = observer
 		metric = registry.metric(:total_requests)
 		
 		# Set a value first to build the cache
 		metric.set(10)
-		
-		# Verify cache is built
-		expect(metric.instance_variable_get(:@cache_valid)).to be == true
-		cached_buffer = metric.instance_variable_get(:@cached_buffer)
-		
+
 		# Create an invalid buffer that will raise an error
 		invalid_buffer = Object.new
 		def invalid_buffer.set_value(type, offset, value)
@@ -251,13 +231,10 @@ describe Async::Utilization::Metric do
 		
 		metric.instance_variable_set(:@cached_buffer, invalid_buffer)
 		
-		# Should not raise, but log warning and keep cache valid
+		# Should not raise, but log warning
 		metric.set(42)
 		expect(metric.value).to be == 42
-		
-		# Cache should remain valid (not invalidated on error)
-		expect(metric.instance_variable_get(:@cache_valid)).to be == true
-		
+
 		# Assert that a warning was logged
 		expect_console.to have_logged(
 			severity: be == :warn,

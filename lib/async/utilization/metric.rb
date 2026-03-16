@@ -14,13 +14,12 @@ module Async
 			# Initialize a new metric.
 			#
 			# @parameter name [Symbol] The field name for this metric.
-			# @parameter registry [Registry] The registry instance to use.
-			def initialize(name, registry)
+			def initialize(name)
 				@name = name.to_sym
-				@registry = registry
 				@value = 0
-				@cache_valid = false
-				@cached_field_info = nil
+				
+				@observer = nil
+				@cached_field = nil
 				@cached_buffer = nil
 				@guard = Mutex.new
 			end
@@ -34,18 +33,42 @@ module Async
 			# @attribute [Mutex] The mutex for thread safety.
 			attr :guard
 			
-			# Invalidate the cached field information.
+			# Set the observer and rebuild cache.
 			#
-			# Called when the observer changes to force cache rebuild.
-			def invalidate
-				@cache_valid = false
-				@cached_field_info = nil
-				@cached_buffer = nil
+			# This is called when the registry assigns a new observer (or removes it).
+			# The cache is invalidated and then immediately recomputed so that the
+			# fast write path doesn't need to re-check the observer on the first write.
+			#
+			# @parameter observer [#set] The new observer (or nil).
+			def observer=(observer)
+				@guard.synchronize do
+					@observer = observer
+					
+					# Eagerly validate so the first write is fast.
+					outcome = :no_observer
+					if @observer
+						if field = @observer.schema[@name]
+							if buffer = @observer.buffer
+								@cached_field = field
+								@cached_buffer = buffer
+								outcome = :cached
+							else
+								outcome = :no_buffer
+							end
+						else
+							outcome = :missing_field_in_schema
+						end
+					else
+						outcome = :unsupported_observer
+					end
+					
+					# Console.info(self, "Cache validation", metric: @name, outcome: outcome)
+					
+					write_direct(@value)
+				end
 			end
 			
 			# Increment the metric value.
-			#
-			# Uses the fast path (direct buffer write) when cache is valid and observer is available.
 			#
 			# @returns [Integer] The new value of the field.
 			def increment
@@ -103,28 +126,6 @@ module Async
 			
 			protected
 			
-			# Check if the cache is valid and rebuild if necessary.
-			#
-			# Always attempts to build the cache if it's invalid. Returns true if cache
-			# is now valid (observer exists, field is in schema, and buffer is available), false otherwise.
-			#
-			# @returns [bool] True if cache is valid, false otherwise.
-			def ensure_cache_valid!
-				unless @cache_valid
-					if observer = @registry.observer
-						if field = observer.schema[@name]
-							if buffer = observer.buffer
-								@cached_field_info = field
-								@cached_buffer = buffer
-							end
-						end
-					end
-					
-					# Once we've validated the cache, even if there was no observer or buffer, we mark it as valid, so that we don't try to revalidate it again:
-					@cache_valid = true
-				end
-			end
-			
 			# Write directly to the cached buffer if available.
 			#
 			# This is the fast path that avoids hash lookups. Always ensures cache is valid
@@ -133,16 +134,12 @@ module Async
 			# @parameter value [Numeric] The value to write.
 			# @returns [Boolean] Whether the write succeeded.
 			def write_direct(value)
-				self.ensure_cache_valid!
-				
 				if @cached_buffer
-					@cached_buffer.set_value(@cached_field_info.type, @cached_field_info.offset, value)
+					@cached_buffer.set_value(@cached_field.type, @cached_field.offset, value)
 				end
 				
 				return true
 			rescue => error
-				# If write fails, log warning but don't invalidate cache
-				# The error might be transient, and invalidating would force hash lookups
 				Console.warn(self, "Failed to write metric value!", metric: {name: @name, value: value}, exception: error)
 				
 				return false

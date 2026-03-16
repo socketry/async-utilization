@@ -3,6 +3,8 @@
 # Released under the MIT License.
 # Copyright, 2026, by Samuel Williams.
 
+require "console"
+
 module Async
 	module Utilization
 		# Registry for emitting utilization metrics.
@@ -68,19 +70,16 @@ module Async
 			# @parameter observer [#set] The observer to set.
 			def observer=(observer)
 				@guard.synchronize do
-					# Invalidate all cached metrics
+					@observer = observer
+					
+					# Invalidate all cached metrics with new observer (or nil)
 					@metrics.each_value do |metric|
-						metric.invalidate
+						metric.observer = observer
 					end
 					
-					@observer = observer
+					# Console.info(self, "Observer assigned", observer: observer, metric_count: @metrics.size)
 				end
 				
-				# Notify observer of all current metric values (outside guard to avoid deadlock)
-				@metrics.each do |name, metric|
-					value = metric.guard.synchronize{metric.value}
-					observer.set(name, value)
-				end
 			end
 			
 			# Set a field value.
@@ -135,7 +134,7 @@ module Async
 				field = field.to_sym
 				
 				@guard.synchronize do
-					@metrics[field] ||= Metric.new(field, self)
+					@metrics[field] ||= Metric.new(field)
 				end
 			end
 		end

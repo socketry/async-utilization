@@ -56,44 +56,24 @@ describe Async::Utilization::Registry do
 		expect(registry.values[:test_field]).to be == 0
 	end
 	
-	it "can set an observer" do
-		observer = Object.new
-		def observer.set(field, value); end
-		
-		registry.set(:test_field, 10)
-		registry.observer = observer
-		
-		expect(registry.observer).to be == observer
-	end
-	
 	it "notifies observer when values change" do
-		values_set = []
-		
-		# Create a proper observer with schema
 		schema = Async::Utilization::Schema.build(test_field: :u64)
+		buffer = IO::Buffer.new(8)
+
 		observer = Object.new
-		
-		# Define methods on observer
-		observer.define_singleton_method(:set) do |field, value|
-			values_set << [field, value]
-		end
-		observer.define_singleton_method(:schema){schema}
-		observer.define_singleton_method(:buffer){nil}  # No buffer, so write_direct will return false
-		
+		observer.define_singleton_method(:schema) { schema }
+		observer.define_singleton_method(:buffer) { buffer }
+
 		registry.set(:test_field, 5)
 		registry.observer = observer
-		
-		# Observer should be notified of existing values
-		expect(values_set).to be(:include?, [:test_field, 5])
-		
-		# Clear and test new changes
-		# Note: Since observer has no buffer, write_direct will return false
-		# and no notification will occur (as per new design)
-		values_set.clear
+
+		# Buffer should be synced with the existing value on observer assignment
+		expect(buffer.get_value(:u64, 0)).to be == 5
+
 		registry.increment(:test_field)
-		
-		# With no buffer, write_direct fails silently, so no notification
-		expect(values_set).to be == []
+
+		# Buffer should reflect the incremented value
+		expect(buffer.get_value(:u64, 0)).to be == 6
 	end
 	
 	it "uses metric method for fast path" do
