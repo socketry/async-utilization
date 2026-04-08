@@ -50,15 +50,12 @@ module Async
 			# @attribute [Object | Nil] The registered observer.
 			attr :observer
 			
-			# @attribute [Mutex] The mutex for thread safety.
-			attr :guard
-			
 			# Get the current values for all metrics.
 			#
 			# @returns [Hash] Hash mapping field names to their current values.
 			def values
 				@metrics.transform_values do |metric|
-					metric.guard.synchronize{metric.value}
+					metric.value
 				end
 			end
 			

@@ -38,11 +38,11 @@ module Async
 			# @attribute [Symbol] The field name for this metric.
 			attr :name
 			
-			# @attribute [Numeric] The current value of this metric.
-			attr :value
-			
-			# @attribute [Mutex] The mutex for thread safety.
-			attr :guard
+			def value
+				@guard.synchronize do
+					@value
+				end
+			end
 			
 			# Set the observer and rebuild cache.
 			#
