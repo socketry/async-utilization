@@ -1,5 +1,9 @@
 # Releases
 
+## Unreleased
+
+  - `Async::Utilization::Metric` is the primary interface, remove `#set`, `#increment`, `#decrement` and `#track` from `Registry`.
+
 ## v0.3.2
 
   - Better observer state handling.

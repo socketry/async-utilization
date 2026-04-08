@@ -8,37 +8,38 @@ require "async/utilization"
 
 describe Async::Utilization::Registry do
 	let(:registry) {Async::Utilization::Registry.new}
+	let(:test_field_metric) {registry.metric(:test_field)}
 	
 	it "can increment a value" do
-		value = registry.increment(:test_field)
+		value = test_field_metric.increment
 		expect(value).to be == 1
 		expect(registry.values[:test_field]).to be == 1
 	end
 	
 	it "can increment multiple times" do
-		registry.increment(:test_field)
-		registry.increment(:test_field)
-		registry.increment(:test_field)
+		test_field_metric.increment
+		test_field_metric.increment
+		test_field_metric.increment
 		
 		expect(registry.values[:test_field]).to be == 3
 	end
 	
 	it "can decrement a value" do
-		registry.increment(:test_field)
-		registry.increment(:test_field)
+		test_field_metric.increment
+		test_field_metric.increment
 		
-		value = registry.decrement(:test_field)
+		value = test_field_metric.decrement
 		expect(value).to be == 1
 		expect(registry.values[:test_field]).to be == 1
 	end
 	
 	it "can set a value directly" do
-		registry.set(:test_field, 42)
+		test_field_metric.set(42)
 		expect(registry.values[:test_field]).to be == 42
 	end
 	
 	it "can track an operation with auto-decrement" do
-		registry.track(:test_field) do
+		test_field_metric.track do
 			expect(registry.values[:test_field]).to be == 1
 		end
 		
@@ -47,7 +48,7 @@ describe Async::Utilization::Registry do
 	
 	it "decrements even if track block raises an error" do
 		begin
-			registry.track(:test_field) do
+			test_field_metric.track do
 				raise "Error!"
 			end
 		rescue
@@ -64,13 +65,13 @@ describe Async::Utilization::Registry do
 		observer.define_singleton_method(:schema){schema}
 		observer.define_singleton_method(:buffer){buffer}
 		
-		registry.set(:test_field, 5)
+		test_field_metric.set(5)
 		registry.observer = observer
 		
 		# Buffer should be synced with the existing value on observer assignment
 		expect(buffer.get_value(:u64, 0)).to be == 5
 		
-		registry.increment(:test_field)
+		test_field_metric.increment
 		
 		# Buffer should reflect the incremented value
 		expect(buffer.get_value(:u64, 0)).to be == 6
@@ -104,7 +105,7 @@ describe Async::Utilization::Registry do
 		observer.define_singleton_method(:schema){schema}
 		observer.define_singleton_method(:buffer){buffer}
 		
-		registry.set(:test_field, 7)
+		test_field_metric.set(7)
 		registry.observer = observer
 		
 		expect(buffer.get_value(:u64, 0)).to be == 7
@@ -118,11 +119,11 @@ describe Async::Utilization::Registry do
 		observer.define_singleton_method(:buffer){buffer}
 		
 		registry.observer = observer
-		registry.set(:test_field, 5)
+		test_field_metric.set(5)
 		expect(buffer.get_value(:u64, 0)).to be == 5
 		
 		registry.observer = nil
-		registry.set(:test_field, 99)
+		test_field_metric.set(99)
 		
 		# Buffer unchanged, in-memory value updated
 		expect(buffer.get_value(:u64, 0)).to be == 5

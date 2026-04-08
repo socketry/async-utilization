@@ -22,9 +22,11 @@ module Async
 		# @example Create a registry and emit metrics:
 		# 	registry = Async::Utilization::Registry.new
 		# 	
-		# 	# Emit metrics - values tracked in registry
-		# 	registry.increment(:total_requests)
-		# 	registry.track(:active_requests) do
+		# 	total_requests = registry.metric(:total_requests)
+		# 	total_requests.increment
+		# 	
+		# 	active_requests = registry.metric(:active_requests)
+		# 	active_requests.track do
 		# 		# Handle request - auto-decrements when block completes
 		# 	end
 		# 	
@@ -37,7 +39,6 @@ module Async
 		# 	observer = Async::Utilization::Observer.open(schema, "/path/to/shm", 4096, 0)
 		# 	registry.observer = observer
 		class Registry
-			
 			# Initialize a new registry.
 			def initialize
 				@observer = nil
@@ -79,48 +80,6 @@ module Async
 					
 					# Console.info(self, "Observer assigned", observer: observer, metric_count: @metrics.size)
 				end
-				
-			end
-			
-			# Set a field value.
-			#
-			# Delegates to the metric instance for the given field.
-			#
-			# @parameter field [Symbol] The field name to set.
-			# @parameter value [Numeric] The value to set.
-			def set(field, value)
-				metric(field).set(value)
-			end
-			
-			# Increment a field value.
-			#
-			# Delegates to the metric instance for the given field.
-			#
-			# @parameter field [Symbol] The field name to increment.
-			# @returns [Integer] The new value of the field.
-			def increment(field)
-				metric(field).increment
-			end
-			
-			# Track an operation: increment before the block, decrement after it completes.
-			#
-			# Delegates to the metric instance for the given field.
-			#
-			# @parameter field [Symbol] The field name to track.
-			# @yield The operation to track.
-			# @returns [Object] The block's return value.
-			def track(field, &block)
-				metric(field).track(&block)
-			end
-			
-			# Decrement a field value.
-			#
-			# Delegates to the metric instance for the given field.
-			#
-			# @parameter field [Symbol] The field name to decrement.
-			# @returns [Integer] The new value of the field.
-			def decrement(field)
-				metric(field).decrement
 			end
 			
 			# Get a cached metric reference for a field.

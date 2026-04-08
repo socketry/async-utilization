@@ -1,3 +1,6 @@
 async-service-supevisor:
   url: https://github.com/socketry/async-service-supervisor
   command: bundle exec sus
+falcon:
+  url: https://github.com/socketry/falcon
+  command: bundle exec sus

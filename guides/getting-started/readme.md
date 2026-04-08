@@ -16,23 +16,23 @@ $ bundle add async-utilization
 
 The key components are:
 
-- {ruby Async::Utilization::Registry}: Thread-local singleton for emitting metrics.
+- {ruby Async::Utilization::Registry}: Holds your metrics and optional observer; create one explicitly and pass it to the code that records utilization.
 - {ruby Async::Utilization::Schema}: Defines the binary layout for serialization.
 - {ruby Async::Utilization::Observer}: Writes metrics to shared memory using the schema.
-- {ruby Async::Utilization::Metric}: Caches metric value and fast path for direct buffer updates.
+- {ruby Async::Utilization::Metric}: The handle you call `increment`, `set`, `track`, etc. on; obtained from the registry.
 
 ## Basic Usage
 
-The recommended way to use `async-utilization` is to get a cached metric reference and use it:
+Create a registry, then get a {ruby Async::Utilization::Metric} per field and use it as the main API:
 
 ```ruby
 require "async/utilization"
 
-# Get metrics:
-total_requests = Async::Utilization.metric(:total_requests)
-active_requests = Async::Utilization.metric(:active_requests)
+registry = Async::Utilization::Registry.new
 
-# Increment a metric:
+total_requests = registry.metric(:total_requests)
+active_requests = registry.metric(:active_requests)
+
 total_requests.increment
 
 # Track an operation (increment before block, decrement after):
@@ -65,11 +65,12 @@ observer = Async::Utilization::Observer.open(
 	0     # offset
 )
 
-# Set observer - metrics will now be written to shared memory
-Async::Utilization.observer = observer
+registry = Async::Utilization::Registry.new
 
-# All metrics are written directly to shared memory:
-total_requests = Async::Utilization.metric(:total_requests)
+# Attach observer - metrics on this registry write to shared memory
+registry.observer = observer
+
+total_requests = registry.metric(:total_requests)
 total_requests.increment
 ```
 
