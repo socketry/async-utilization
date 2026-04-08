@@ -43,6 +43,16 @@ end
 
 Metrics are tracked in memory and can be accessed programmatically. However, for inter-process communication (e.g., with a supervisor process), you'll want to use a shared memory observer.
 
+## Using metrics from your own objects
+
+Assign the handle from the registry to an instance variable (or replace it when you switch to a different registry):
+
+```ruby
+@total_requests = registry.metric(:total_requests)
+```
+
+Each call to `registry.metric(:field)` returns the **same** cached instance for that field. Setting `registry.observer = …` updates every metric the registry already holds, so you normally keep using the same handle. Fetch a new metric only when you use a different registry or a different field name.
+
 ## With Shared Memory Observer
 
 When you need to share metrics with other processes (like a supervisor monitoring worker health), you can set up a shared memory observer:
