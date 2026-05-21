@@ -38,6 +38,9 @@ module Async
 			# @attribute [Symbol] The field name for this metric.
 			attr :name
 			
+			# Get the current in-memory metric value.
+			#
+			# @returns [Numeric] The last value written to this metric.
 			def value
 				@guard.synchronize do
 					@value
