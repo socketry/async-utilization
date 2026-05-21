@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.4.0
 
   - Add `Async::Utilization::Namespace` for composing registry metric names.
   - `Async::Utilization::Metric` is the primary interface, remove `#set`, `#increment`, `#decrement` and `#track` from `Registry`.

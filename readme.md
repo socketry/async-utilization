@@ -14,6 +14,11 @@ Please see the [project documentation](https://socketry.github.io/async-utilizat
 
 Please see the [project releases](https://socketry.github.io/async-utilization/releases/index) for all releases.
 
+### v0.4.0
+
+  - Add `Async::Utilization::Namespace` for composing registry metric names.
+  - `Async::Utilization::Metric` is the primary interface, remove `#set`, `#increment`, `#decrement` and `#track` from `Registry`.
+
 ### v0.3.2
 
   - Better observer state handling.

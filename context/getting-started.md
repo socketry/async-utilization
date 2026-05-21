@@ -53,6 +53,28 @@ Assign the handle from the registry to an instance variable (or replace it when 
 
 Each call to `registry.metric(:field)` returns the **same** cached instance for that field. Setting `registry.observer = …` updates every metric the registry already holds, so you normally keep using the same handle. Fetch a new metric only when you use a different registry or a different field name.
 
+## Namespaces
+
+Use namespaces when several components expose the same generic field names but need distinct fields in the shared registry:
+
+```ruby
+registry = Async::Utilization::Registry.new
+
+socket_accept = registry.namespace(:socket_accept)
+long_task = registry.namespace(:long_task)
+
+socket_accept.metric(:acquired_count).increment
+long_task.metric(:acquired_count).increment
+
+registry.values
+# => {
+#   socket_accept_acquired_count: 1,
+#   long_task_acquired_count: 1
+# }
+```
+
+A namespace is registry-like: pass it to code that expects an object responding to `metric(name)`. Nested namespaces compose names with underscores.
+
 ## With Shared Memory Observer
 
 When you need to share metrics with other processes (like a supervisor monitoring worker health), you can set up a shared memory observer:
