@@ -5,6 +5,7 @@
 
 require_relative "utilization/version"
 require_relative "utilization/schema"
+require_relative "utilization/namespace"
 require_relative "utilization/registry"
 require_relative "utilization/observer"
 require_relative "utilization/metric"

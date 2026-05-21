@@ -84,6 +84,14 @@ describe Async::Utilization::Registry do
 		expect(registry.values).to have_keys(module_test: be == 2)
 	end
 	
+	it "can create a namespace" do
+		namespace = registry.namespace(:socket_accept)
+		
+		expect(namespace).to be_a(Async::Utilization::Namespace)
+		expect(namespace.registry).to be == registry
+		expect(namespace.name).to be == :socket_accept
+	end
+	
 	it "can use metric for decrement" do
 		registry.metric(:module_decrement_test).increment
 		registry.metric(:module_decrement_test).increment

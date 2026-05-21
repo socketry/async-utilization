@@ -4,6 +4,7 @@
 # Copyright, 2026, by Samuel Williams.
 
 require "console"
+require_relative "namespace"
 
 module Async
 	module Utilization
@@ -92,6 +93,14 @@ module Async
 				@guard.synchronize do
 					@metrics[field] ||= Metric.for(field, @observer)
 				end
+			end
+			
+			# Get a namespace view of this registry.
+			#
+			# @parameter name [Symbol] The namespace name.
+			# @returns [Namespace] A registry-like namespace view.
+			def namespace(name)
+				Namespace.new(self, name)
 			end
 		end
 	end
