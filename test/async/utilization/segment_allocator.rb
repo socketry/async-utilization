@@ -62,6 +62,35 @@ describe Async::Utilization::SegmentAllocator do
 		allocator&.close
 	end
 	
+	it "returns nil when automatic resizing fails" do
+		allocator = subject.new(path, size: page_size, segment_size: page_size)
+		allocator.allocate(:first, schema.to_a)
+		
+		expect(allocator).to receive(:resize).and_return(false)
+		expect(allocator.allocate(:second, schema.to_a)).to be_nil
+	ensure
+		allocator&.close
+	end
+	
+	it "skips fields that cannot be read" do
+		allocator = subject.new(path, size: page_size, segment_size: page_size)
+		allocator.allocate(:worker, [[:invalid, :invalid, 0]])
+		
+		expect(allocator.read(:worker)).to be == {}
+	ensure
+		allocator&.close
+	end
+	
+	it "reports resize failures" do
+		allocator = subject.new(path, size: page_size, segment_size: page_size)
+		file = allocator.instance_variable_get(:@file)
+		
+		expect(file).to receive(:truncate).and_raise(IOError, "Failed to resize")
+		expect(allocator.resize(page_size * 2)).to be_falsey
+	ensure
+		allocator&.close
+	end
+	
 	it "only replaces an existing file when requested" do
 		original = subject.new(path, size: page_size, segment_size: page_size)
 		original.resize(page_size * 2)
