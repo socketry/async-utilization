@@ -7,22 +7,22 @@ require "console"
 
 module Async
 	module Utilization
-		# Represents a shared memory segment allocator for utilization data.
+		# Represents a shared memory segment store for utilization data.
 		#
-		# Allocates fixed-size segments from a shared memory file, associates each
+		# Stores fixed-size segments in a shared memory file, associates each
 		# segment with a utilization schema, and reads the resulting values.
-		class SegmentAllocator
-			# Open a shared memory segment allocator.
+		class SegmentStore
+			# Open a shared memory segment store.
 			#
 			# @parameter path [String] The path to the shared memory file.
 			# @parameter size [Integer] The initial size of the shared memory file.
 			# @parameter segment_size [Integer] The size of each allocation segment.
 			# @parameter growth_factor [Integer | Float] The factor used to grow the file when all segments are allocated.
 			# @parameter replace [Boolean] Whether to replace an existing file at the given path.
-			# @yields {|allocator| ...} The allocator, which is closed after the block completes.
-			# 	@parameter allocator [SegmentAllocator] The opened allocator.
-			# @returns [SegmentAllocator | Object] The allocator, or the value returned by the block.
-			# @raises [ArgumentError] If the allocator configuration is invalid.
+			# @yields {|store| ...} The store, which is closed after the block completes.
+			# 	@parameter store [SegmentStore] The opened store.
+			# @returns [SegmentStore | Object] The store, or the value returned by the block.
+			# @raises [ArgumentError] If the store configuration is invalid.
 			# @raises [Errno::EEXIST] If the path already exists and `replace` is `false`.
 			def self.open(path, size: IO::Buffer::PAGE_SIZE * 8, segment_size: 512, growth_factor: 2, replace: false)
 				raise ArgumentError, "Size must be a positive integer!" unless size.is_a?(Integer) && size > 0
@@ -44,23 +44,23 @@ module Async
 				begin
 					file.truncate(size)
 					buffer = IO::Buffer.map(file, size)
-					allocator = new(file, buffer, size: size, segment_size: segment_size, growth_factor: growth_factor)
+					store = new(file, buffer, size: size, segment_size: segment_size, growth_factor: growth_factor)
 				rescue
 					buffer&.free
 					file.close
 					raise
 				end
 				
-				return allocator unless block_given?
+				return store unless block_given?
 				
 				begin
-					yield allocator
+					yield store
 				ensure
-					allocator.close
+					store.close
 				end
 			end
 			
-			# Initialize the shared memory segment allocator.
+			# Initialize the shared memory segment store.
 			#
 			# @parameter file [File] The open shared memory file.
 			# @parameter buffer [IO::Buffer] The mapped shared memory buffer.

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-  - Add `Async::Utilization::SegmentAllocator` for allocating and reading utilization data in shared memory.
+  - Add `Async::Utilization::SegmentStore` for allocating and reading utilization data in shared memory.
 
 ## v0.4.0
 

@@ -19,7 +19,7 @@ The key components are:
 - {ruby Async::Utilization::Registry}: Holds your metrics and optional observer; create one explicitly and pass it to the code that records utilization.
 - {ruby Async::Utilization::Schema}: Defines the binary layout for serialization.
 - {ruby Async::Utilization::Observer}: Writes metrics to shared memory using the schema.
-- {ruby Async::Utilization::SegmentAllocator}: Allocates shared memory regions and reads their utilization values.
+- {ruby Async::Utilization::SegmentStore}: Stores shared memory regions and reads their utilization values.
 - {ruby Async::Utilization::Metric}: The handle you call `increment`, `set`, `track`, etc. on; obtained from the registry.
 
 ## Basic Usage
@@ -111,22 +111,22 @@ The observer automatically handles page alignment requirements for memory mappin
 
 ## Allocating Shared Memory Segments
 
-Use {ruby Async::Utilization::SegmentAllocator} when one process coordinates shared memory regions for multiple observers:
+Use {ruby Async::Utilization::SegmentStore} when one process coordinates shared memory regions for multiple observers:
 
 ```ruby
 path = "/path/to/shared_memory.shm"
-allocator = Async::Utilization::SegmentAllocator.open(
+store = Async::Utilization::SegmentStore.open(
 	path,
 	segment_size: 512,
 	replace: true,
 )
 
-offset = allocator.allocate(:worker, schema.to_a)
+offset = store.allocate(:worker, schema.to_a)
 observer = Async::Utilization::Observer.open(schema, path, 512, offset)
 
 # After the observer writes metrics:
-allocator.read(:worker)
+store.read(:worker)
 # => {total_requests: 1, active_requests: 0}
 ```
 
-The allocator grows the shared memory file automatically when all segments are in use. Pass `replace: true` only when the coordinating process should replace an existing file, such as when a supervisor restarts.
+The store grows the shared memory file automatically when all segments are in use. Pass `replace: true` only when the coordinating process should replace an existing file, such as when a supervisor restarts.

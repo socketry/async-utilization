@@ -8,7 +8,7 @@ require "sus/fixtures/console/null_logger"
 require "sus/fixtures/temporary_directory_context"
 require "async/utilization"
 
-describe Async::Utilization::SegmentAllocator do
+describe Async::Utilization::SegmentStore do
 	include Sus::Fixtures::Console::NullLogger
 	include Sus::Fixtures::TemporaryDirectoryContext
 	
@@ -22,73 +22,73 @@ describe Async::Utilization::SegmentAllocator do
 	end
 	
 	it "allocates, reads, and reuses segments" do
-		allocator = subject.open(path, size: page_size, segment_size: page_size)
+		store = subject.open(path, size: page_size, segment_size: page_size)
 		
-		first_offset = allocator.allocate(:first, [])
+		first_offset = store.allocate(:first, [])
 		expect(first_offset).to be == 0
-		expect(allocator.allocation(:first)).to have_keys(offset: be == 0, schema: be == [])
+		expect(store.allocation(:first)).to have_keys(offset: be == 0, schema: be == [])
 		
-		allocator.update_schema(:first, schema.to_a)
+		store.update_schema(:first, schema.to_a)
 		observer = Async::Utilization::Observer.open(schema, path, page_size, first_offset)
 		observer.buffer.set_value(:u64, 0, 12)
 		observer.buffer.set_value(:u32, 8, 3)
 		
-		expect(allocator.read(:first)).to be == {requests_total: 12, requests_active: 3}
+		expect(store.read(:first)).to be == {requests_total: 12, requests_active: 3}
 		
-		allocator.free(:first)
-		expect(allocator.read(:first)).to be_nil
-		expect(allocator.allocate(:second, schema.to_a)).to be == first_offset
+		store.free(:first)
+		expect(store.read(:first)).to be_nil
+		expect(store.allocate(:second, schema.to_a)).to be == first_offset
 	ensure
 		observer&.buffer&.free
-		allocator&.close
+		store&.close
 	end
 	
 	it "preserves existing observer mappings when resizing" do
-		allocator = subject.open(path, size: page_size, segment_size: page_size)
-		first_offset = allocator.allocate(:first, schema.to_a)
+		store = subject.open(path, size: page_size, segment_size: page_size)
+		first_offset = store.allocate(:first, schema.to_a)
 		observer = Async::Utilization::Observer.open(schema, path, page_size, first_offset)
 		
 		observer.buffer.set_value(:u64, 0, 42)
-		expect(allocator.read(:first)[:requests_total]).to be == 42
+		expect(store.read(:first)[:requests_total]).to be == 42
 		
-		second_offset = allocator.allocate(:second, schema.to_a)
+		second_offset = store.allocate(:second, schema.to_a)
 		expect(second_offset).to be == page_size
-		expect(allocator.size).to be == page_size * 2
+		expect(store.size).to be == page_size * 2
 		
 		observer.buffer.set_value(:u64, 0, 99)
-		expect(allocator.read(:first)[:requests_total]).to be == 99
+		expect(store.read(:first)[:requests_total]).to be == 99
 	ensure
 		observer&.buffer&.free
-		allocator&.close
+		store&.close
 	end
 	
 	it "returns nil when automatic resizing fails" do
-		allocator = subject.open(path, size: page_size, segment_size: page_size)
-		allocator.allocate(:first, schema.to_a)
+		store = subject.open(path, size: page_size, segment_size: page_size)
+		store.allocate(:first, schema.to_a)
 		
-		expect(allocator).to receive(:resize).and_return(false)
-		expect(allocator.allocate(:second, schema.to_a)).to be_nil
+		expect(store).to receive(:resize).and_return(false)
+		expect(store.allocate(:second, schema.to_a)).to be_nil
 	ensure
-		allocator&.close
+		store&.close
 	end
 	
 	it "skips fields that cannot be read" do
-		allocator = subject.open(path, size: page_size, segment_size: page_size)
-		allocator.allocate(:worker, [[:invalid, :invalid, 0]])
+		store = subject.open(path, size: page_size, segment_size: page_size)
+		store.allocate(:worker, [[:invalid, :invalid, 0]])
 		
-		expect(allocator.read(:worker)).to be == {}
+		expect(store.read(:worker)).to be == {}
 	ensure
-		allocator&.close
+		store&.close
 	end
 	
 	it "reports resize failures" do
-		allocator = subject.open(path, size: page_size, segment_size: page_size)
-		file = allocator.instance_variable_get(:@file)
+		store = subject.open(path, size: page_size, segment_size: page_size)
+		file = store.instance_variable_get(:@file)
 		
 		expect(file).to receive(:truncate).and_raise(IOError, "Failed to resize")
-		expect(allocator.resize(page_size * 2)).to be_falsey
+		expect(store.resize(page_size * 2)).to be_falsey
 	ensure
-		allocator&.close
+		store&.close
 	end
 	
 	it "only replaces an existing file when requested" do
@@ -129,11 +129,11 @@ describe Async::Utilization::SegmentAllocator do
 		end
 	end
 	
-	it "closes the allocator after yielding it" do
+	it "closes the store after yielding it" do
 		file = nil
 		
-		result = subject.open(path, size: page_size, segment_size: page_size) do |allocator|
-			file = allocator.instance_variable_get(:@file)
+		result = subject.open(path, size: page_size, segment_size: page_size) do |store|
+			file = store.instance_variable_get(:@file)
 			expect(file.closed?).to be_falsey
 			:result
 		end
