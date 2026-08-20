@@ -172,10 +172,4 @@ describe Async::Utilization::SegmentAllocator do
 		expect(file.closed?).to be_truthy
 		expect(buffer.null?).to be_truthy
 	end
-	
-	it "does not expose direct construction" do
-		expect do
-			subject.new(nil, nil, size: page_size, segment_size: page_size, growth_factor: 2)
-		end.to raise_exception(NoMethodError)
-	end
 end

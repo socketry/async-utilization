@@ -84,8 +84,6 @@ module Async
 				end
 			end
 			
-			private_class_method :new
-			
 			# Allocate a segment for the given key.
 			#
 			# The shared memory file is automatically resized if no segments are available.
