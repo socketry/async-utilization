@@ -25,10 +25,10 @@ module Async
 			# @raises [ArgumentError] If the allocator configuration is invalid.
 			# @raises [Errno::EEXIST] If the path already exists and `replace` is `false`.
 			def self.open(path, size: IO::Buffer::PAGE_SIZE * 8, segment_size: 512, growth_factor: 2, replace: false)
-				raise ArgumentError, "size must be a positive integer" unless size.is_a?(Integer) && size > 0
-				raise ArgumentError, "segment_size must be a positive integer" unless segment_size.is_a?(Integer) && segment_size > 0
-				raise ArgumentError, "segment_size must not exceed size" if segment_size > size
-				raise ArgumentError, "growth_factor must be greater than 1" unless growth_factor.is_a?(Numeric) && growth_factor.real? && growth_factor > 1
+				raise ArgumentError, "Size must be a positive integer!" unless size.is_a?(Integer) && size > 0
+				raise ArgumentError, "Segment size must be a positive integer!" unless segment_size.is_a?(Integer) && segment_size > 0
+				raise ArgumentError, "Segment size must not exceed size!" if segment_size > size
+				raise ArgumentError, "Growth factor must be greater than 1!" unless growth_factor.is_a?(Numeric) && growth_factor.real? && growth_factor > 1
 				
 				if replace
 					begin
@@ -51,14 +51,12 @@ module Async
 					raise
 				end
 				
-				if block_given?
-					begin
-						yield allocator
-					ensure
-						allocator.close
-					end
-				else
-					allocator
+				return allocator unless block_given?
+				
+				begin
+					yield allocator
+				ensure
+					allocator.close
 				end
 			end
 			

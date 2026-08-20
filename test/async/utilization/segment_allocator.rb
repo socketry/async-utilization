@@ -116,10 +116,10 @@ describe Async::Utilization::SegmentAllocator do
 		File.write(path, "existing")
 		
 		[
-			[{size: 0}, "size must be a positive integer"],
-			[{segment_size: 0}, "segment_size must be a positive integer"],
-			[{size: page_size, segment_size: page_size * 2}, "segment_size must not exceed size"],
-			[{growth_factor: 1}, "growth_factor must be greater than 1"],
+			[{size: 0}, "Size must be a positive integer!"],
+			[{segment_size: 0}, "Segment size must be a positive integer!"],
+			[{size: page_size, segment_size: page_size * 2}, "Segment size must not exceed size!"],
+			[{growth_factor: 1}, "Growth factor must be greater than 1!"],
 		].each do |options, message|
 			expect do
 				subject.open(path, replace: true, **options)
