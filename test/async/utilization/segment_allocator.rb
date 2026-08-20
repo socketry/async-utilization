@@ -22,7 +22,7 @@ describe Async::Utilization::SegmentAllocator do
 	end
 	
 	it "allocates, reads, and reuses segments" do
-		allocator = subject.new(path, size: page_size, segment_size: page_size)
+		allocator = subject.open(path, size: page_size, segment_size: page_size)
 		
 		first_offset = allocator.allocate(:first, [])
 		expect(first_offset).to be == 0
@@ -44,7 +44,7 @@ describe Async::Utilization::SegmentAllocator do
 	end
 	
 	it "preserves existing observer mappings when resizing" do
-		allocator = subject.new(path, size: page_size, segment_size: page_size)
+		allocator = subject.open(path, size: page_size, segment_size: page_size)
 		first_offset = allocator.allocate(:first, schema.to_a)
 		observer = Async::Utilization::Observer.open(schema, path, page_size, first_offset)
 		
@@ -63,7 +63,7 @@ describe Async::Utilization::SegmentAllocator do
 	end
 	
 	it "returns nil when automatic resizing fails" do
-		allocator = subject.new(path, size: page_size, segment_size: page_size)
+		allocator = subject.open(path, size: page_size, segment_size: page_size)
 		allocator.allocate(:first, schema.to_a)
 		
 		expect(allocator).to receive(:resize).and_return(false)
@@ -73,7 +73,7 @@ describe Async::Utilization::SegmentAllocator do
 	end
 	
 	it "skips fields that cannot be read" do
-		allocator = subject.new(path, size: page_size, segment_size: page_size)
+		allocator = subject.open(path, size: page_size, segment_size: page_size)
 		allocator.allocate(:worker, [[:invalid, :invalid, 0]])
 		
 		expect(allocator.read(:worker)).to be == {}
@@ -82,7 +82,7 @@ describe Async::Utilization::SegmentAllocator do
 	end
 	
 	it "reports resize failures" do
-		allocator = subject.new(path, size: page_size, segment_size: page_size)
+		allocator = subject.open(path, size: page_size, segment_size: page_size)
 		file = allocator.instance_variable_get(:@file)
 		
 		expect(file).to receive(:truncate).and_raise(IOError, "Failed to resize")
@@ -92,7 +92,7 @@ describe Async::Utilization::SegmentAllocator do
 	end
 	
 	it "only replaces an existing file when requested" do
-		original = subject.new(path, size: page_size, segment_size: page_size)
+		original = subject.open(path, size: page_size, segment_size: page_size)
 		original.resize(page_size * 2)
 		
 		existing_file = File.open(path, "rb")
@@ -100,15 +100,82 @@ describe Async::Utilization::SegmentAllocator do
 		original.close
 		
 		expect do
-			subject.new(path, size: page_size, segment_size: page_size)
+			subject.open(path, size: page_size, segment_size: page_size)
 		end.to raise_exception(Errno::EEXIST)
 		
-		replacement = subject.new(path, size: page_size, segment_size: page_size, replace: true)
+		replacement = subject.open(path, size: page_size, segment_size: page_size, replace: true)
 		expect(replacement.size).to be == page_size
 		expect(existing_file.size).to be == original_size
 	ensure
 		original&.close
 		replacement&.close
 		existing_file&.close
+	end
+	
+	it "validates configuration before replacing an existing file" do
+		File.write(path, "existing")
+		
+		[
+			[{size: 0}, "size must be a positive integer"],
+			[{segment_size: 0}, "segment_size must be a positive integer"],
+			[{size: page_size, segment_size: page_size * 2}, "segment_size must not exceed size"],
+			[{growth_factor: 1}, "growth_factor must be greater than 1"],
+		].each do |options, message|
+			expect do
+				subject.open(path, replace: true, **options)
+			end.to raise_exception(ArgumentError, message: be == message)
+			
+			expect(File.read(path)).to be == "existing"
+		end
+	end
+	
+	it "closes the allocator after yielding it" do
+		file = nil
+		
+		result = subject.open(path, size: page_size, segment_size: page_size) do |allocator|
+			file = allocator.instance_variable_get(:@file)
+			expect(file.closed?).to be_falsey
+			:result
+		end
+		
+		expect(result).to be == :result
+		expect(file.closed?).to be_truthy
+	end
+	
+	it "closes the file when mapping fails" do
+		file = File.open(path, "w+bx")
+		File.unlink(path)
+		
+		expect(File).to receive(:open).with(path, "w+bx").and_return(file)
+		expect(IO::Buffer).to receive(:map).with(file, page_size).and_raise(IOError, "Failed to map")
+		
+		expect do
+			subject.open(path, size: page_size, segment_size: page_size)
+		end.to raise_exception(IOError, message: be == "Failed to map")
+		
+		expect(file.closed?).to be_truthy
+	end
+	
+	it "releases acquired resources when initialization fails" do
+		file = File.open(path, "w+bx")
+		File.unlink(path)
+		buffer = IO::Buffer.new(page_size)
+		
+		expect(File).to receive(:open).with(path, "w+bx").and_return(file)
+		expect(IO::Buffer).to receive(:map).with(file, page_size).and_return(buffer)
+		expect(subject).to receive(:new).and_raise(IOError, "Failed to initialize")
+		
+		expect do
+			subject.open(path, size: page_size, segment_size: page_size)
+		end.to raise_exception(IOError, message: be == "Failed to initialize")
+		
+		expect(file.closed?).to be_truthy
+		expect(buffer.null?).to be_truthy
+	end
+	
+	it "does not expose direct construction" do
+		expect do
+			subject.new(nil, nil, size: page_size, segment_size: page_size, growth_factor: 2)
+		end.to raise_exception(NoMethodError)
 	end
 end

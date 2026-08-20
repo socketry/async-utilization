@@ -115,7 +115,7 @@ Use {ruby Async::Utilization::SegmentAllocator} when one process coordinates sha
 
 ```ruby
 path = "/path/to/shared_memory.shm"
-allocator = Async::Utilization::SegmentAllocator.new(
+allocator = Async::Utilization::SegmentAllocator.open(
 	path,
 	segment_size: 512,
 	replace: true,

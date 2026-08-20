@@ -12,17 +12,23 @@ module Async
 		# Allocates fixed-size segments from a shared memory file, associates each
 		# segment with a utilization schema, and reads the resulting values.
 		class SegmentAllocator
-			# Initialize the shared memory segment allocator.
+			# Open a shared memory segment allocator.
 			#
 			# @parameter path [String] The path to the shared memory file.
 			# @parameter size [Integer] The initial size of the shared memory file.
 			# @parameter segment_size [Integer] The size of each allocation segment.
 			# @parameter growth_factor [Integer | Float] The factor used to grow the file when all segments are allocated.
 			# @parameter replace [Boolean] Whether to replace an existing file at the given path.
-			def initialize(path, size: IO::Buffer::PAGE_SIZE * 8, segment_size: 512, growth_factor: 2, replace: false)
-				@size = size
-				@segment_size = segment_size
-				@growth_factor = growth_factor
+			# @yields {|allocator| ...} The allocator, which is closed after the block completes.
+			# 	@parameter allocator [SegmentAllocator] The opened allocator.
+			# @returns [SegmentAllocator | Object] The allocator, or the value returned by the block.
+			# @raises [ArgumentError] If the allocator configuration is invalid.
+			# @raises [Errno::EEXIST] If the path already exists and `replace` is `false`.
+			def self.open(path, size: IO::Buffer::PAGE_SIZE * 8, segment_size: 512, growth_factor: 2, replace: false)
+				raise ArgumentError, "size must be a positive integer" unless size.is_a?(Integer) && size > 0
+				raise ArgumentError, "segment_size must be a positive integer" unless segment_size.is_a?(Integer) && segment_size > 0
+				raise ArgumentError, "segment_size must not exceed size" if segment_size > size
+				raise ArgumentError, "growth_factor must be greater than 1" unless growth_factor.is_a?(Numeric) && growth_factor.real? && growth_factor > 1
 				
 				if replace
 					begin
@@ -32,9 +38,43 @@ module Async
 					end
 				end
 				
-				@file = File.open(path, "w+bx")
-				@file.truncate(size)
-				@buffer = IO::Buffer.map(@file, size)
+				file = File.open(path, "w+bx")
+				buffer = nil
+				
+				begin
+					file.truncate(size)
+					buffer = IO::Buffer.map(file, size)
+					allocator = new(file, buffer, size: size, segment_size: segment_size, growth_factor: growth_factor)
+				rescue
+					buffer&.free
+					file.close
+					raise
+				end
+				
+				if block_given?
+					begin
+						yield allocator
+					ensure
+						allocator.close
+					end
+				else
+					allocator
+				end
+			end
+			
+			# Initialize the shared memory segment allocator.
+			#
+			# @parameter file [File] The open shared memory file.
+			# @parameter buffer [IO::Buffer] The mapped shared memory buffer.
+			# @parameter size [Integer] The initial size of the shared memory file.
+			# @parameter segment_size [Integer] The size of each allocation segment.
+			# @parameter growth_factor [Integer | Float] The factor used to grow the file when all segments are allocated.
+			def initialize(file, buffer, size:, segment_size:, growth_factor:)
+				@file = file
+				@buffer = buffer
+				@size = size
+				@segment_size = segment_size
+				@growth_factor = growth_factor
 				
 				@allocations = {}
 				@free_list = []
@@ -43,6 +83,8 @@ module Async
 					@free_list << (segment_index * @segment_size)
 				end
 			end
+			
+			private_class_method :new
 			
 			# Allocate a segment for the given key.
 			#
