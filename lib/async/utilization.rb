@@ -9,6 +9,7 @@ require_relative "utilization/namespace"
 require_relative "utilization/registry"
 require_relative "utilization/observer"
 require_relative "utilization/metric"
+require_relative "utilization/segment_allocator"
 
 # @namespace
 module Async
