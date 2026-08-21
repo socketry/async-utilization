@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.5.0
 
   - Add `Async::Utilization::SegmentStore` for allocating and reading utilization data in shared memory.
 

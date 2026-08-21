@@ -14,6 +14,10 @@ Please see the [project documentation](https://socketry.github.io/async-utilizat
 
 Please see the [project releases](https://socketry.github.io/async-utilization/releases/index) for all releases.
 
+### v0.5.0
+
+  - Add `Async::Utilization::SegmentStore` for allocating and reading utilization data in shared memory.
+
 ### v0.4.0
 
   - Add `Async::Utilization::Namespace` for composing registry metric names.
