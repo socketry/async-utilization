@@ -1,5 +1,9 @@
 # Releases
 
+## Unreleased
+
+  - Add `Async::Utilization::SegmentStore` for allocating and reading utilization data in shared memory.
+
 ## v0.4.0
 
   - Add `Async::Utilization::Namespace` for composing registry metric names.
